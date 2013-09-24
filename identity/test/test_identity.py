@@ -86,6 +86,7 @@ class IdentityUsersResourceTest(testing.TestBase):
         #get /version/users/ID -X-Auth-Token: token
         #get /version/users?email=EMAIL -X-Auth-Token: token
         #post /version/users -X-Auth-Token: token
+        #post /version/users/ID -X-Auth-Token: token
 
     def test_valid_users(self):
         headers = {'X-Auth-Token' : 'my-token'}
