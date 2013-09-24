@@ -93,7 +93,7 @@ class VersionDetailResource:
 		if version_json != None and version_id != None and version_id == 'v2.0':
 			resp.status = falcon.HTTP_200
 			resp.body = version_detail_json
-		else: 
+		else:
 			resp.status = falcon.HTTP_300
 			resp.body = version_json
 
