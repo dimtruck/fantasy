@@ -8,7 +8,29 @@ class TokenMock:
 
     @property
     def expires(self):
-        return datetime.date.today() + datetime.timedelta(days=1)
+        return datetime.datetime.now() + datetime.timedelta(days=1)
+
+class UserMock:
+    @property
+    def id(self):
+        return 123456
+
+    @property
+    def username(self):
+        return 'username'
+
+    @property
+    def email(self):
+        return 'user@email.com'
+
+    @property
+    def enabled(self):
+        return True
+
+    @property
+    def token(self):
+        return TokenMock()
+
 
 class TokenInvalidMock:
     @property
@@ -30,11 +52,28 @@ class RedisMock:
         else:
             return None
 
-    def add(self, data):
+    def mset(self, data):
         if self._add:
-            return 1
+            return 'OK'
         else:
-            return 0
+            return 'FAIL'
+
+class RedisUserMock:
+    def __init__(self, get_works=True, add_works=True):
+        self._get = get_works
+        self._add = add_works
+
+    def get(self, id):
+        if self._get:
+            return UserMock()
+        else:
+            return None
+
+    def mset(self, data):
+        if self._add:
+            return 'OK'
+        else:
+            return 'FAIL'
 
 class RedisInvalidMock:
     def get(self, id):

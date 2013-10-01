@@ -5,6 +5,7 @@ import inspect
 import uuid
 import yaml
 import os
+import entities.entities as _entities
 
 
 '''
@@ -25,40 +26,54 @@ class RedisProvider:
         self.client_info = {'host': config['redis']['host'], 'port': config['redis']['port'], 'db': config['redis']['db']}
 
 
-    def get_token(self, user_id):
-        if user_id is None:
+    '''
+    1. check if token is specified
+    2. get token prefix
+    3. search for token
+
+    '''
+    def get_token(self, token_id):
+        if token_id is None:
             raise _exception.Error("user not found.")
-        ptk = self._prefix_user_id(user_id)
+        ptk = self._prefix_token_id(token_id)
         token_ref = self.client.get(ptk)
         if token_ref is None:
-            raise _exception.TokenNotFound(user_id)
+            raise _exception.TokenNotFound(token_id)
         return token_ref
 
     def get_user(self, user_id):
         if user_id is None:
             raise _exception.Error("user not found.")
         ptk = self._prefix_user_id(user_id)
-        token_ref = self.client.get(ptk)
-        if token_ref is None:
-            raise _exception.TokenNotFound(user_id)
-        return token_ref
+        user_ref = self.client.get(ptk)
+        if user_ref is None:
+            raise _exception.UserNotFound(user_id)
+        return user_ref
 
 
     def generate_token(self, user_id, regenerate=True):
         if user_id is None:
             raise _exception.Error("user not found.")
-        if regenerate:
-            token = Token(uuid.uuid1(), datetime.date.today() + datetime.timedelta(days=1))
-            self._add_token(user_id, token)
+        user = self.get_user(user_id)
+        if user is None:
+            raise _exception.Error("user not found.")
         else:
-            token = self.get_token(user_id)
-            if token is None:
-                token = Token(uuid.uuid1(), datetime.date.today() + datetime.timedelta(days=1))
-                self._add_token(user_id, token)
+            if regenerate:
+                token = _entities.Token(uuid.uuid1(), datetime.datetime.today() + datetime.timedelta(days=1))
+                self.add_token(user_id, token)
+            else:
+                token = user.token
         return token
 
-    def _add_token(self, user_id, token):
-        pass
+    def add_token(self, user_id, token):
+        if token is None or token.expires is None or token.id is None:
+            raise _exception.TokenInvalid
+        self.client.mset(token)
+
+    def add_user(self, user):
+        if user is None or user.username is None:
+            raise _exception.UserInvalid
+        return self.client.mset(user.__dict__)
 
     def _prefix_token_id(self, token_id):
         return 'tokens-%s' % token_id.encode('utf-8')

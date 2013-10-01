@@ -6,7 +6,7 @@ import inspect
 import exceptions
 import uuid
 import redis_mocks
-import entities
+import entities.entities as entities
 
 
 class TestRedis(unittest.TestCase):
@@ -36,25 +36,27 @@ class TestRedis(unittest.TestCase):
         old_token = self.provider.get_token("123456")
         token = self.provider.generate_token("123456", True)
         self.assertIsNotNone(token.id)
-        self.assertTrue(token.expires > datetime.date.today() + datetime.timedelta(days=1))
+        self.assertTrue(token.expires > datetime.date.now() + datetime.timedelta(days=1))
         self.assertNotEqual(old_token.id, token.id)
 
     def test_token_generation_success_already_exists_do_not_regenerate(self):
         old_token = self.provider.get_token("123456")
         token = self.provider.generate_token("123456", False)
         self.assertIsNotNone(token.id)
-        self.assertTrue(token.expires > datetime.date.today() + datetime.timedelta(days=1))
-        self.assertEqual(old_token.id, token.id)
+        self.assertEquals(token.expires, old_token.expires)
+        self.assertEqual(old_token.id.hex, token.id.hex)
 
     def test_token_generation_fail(self):
-        token = self.provider.generate_token("invalid", True)
-        self.assertIsNone(token)
-        self.assertRaises(exceptions.UserNotFound)
+        redis_client = redis_mocks.RedisMock(False, False)
+        self.provider = RedisProvider(redis_client)
+        self.assertRaises(exceptions.UserNotFound, self.provider.generate_token, "invalid", True)
 
     def test_token_generation_user_none(self):
         self.assertRaises(_exceptions.Error, self.provider.generate_token, None, True)
 
     def test_token_generation_user_does_not_exist(self):
+        redis_client = redis_mocks.RedisUserMock(False, False)
+        self.provider = RedisProvider(redis_client)
         self.assertRaises(_exceptions.UserNotFound, self.provider.generate_token, "invalid", True)
 
     # test token retrieval
@@ -67,15 +69,20 @@ class TestRedis(unittest.TestCase):
         self.assertRaises(_exceptions.Error, self.provider.get_token, None)
 
     def test_token_retrieval_invalid_token(self):
+        redis_client = redis_mocks.RedisMock(False, False)
+        self.provider = RedisProvider(redis_client)
         self.assertRaises(_exceptions.TokenNotFound, self.provider.get_token, "111111")
 
     # test user retrieval
     def test_user_retrieval_valid_user(self):
-        token = self.provider.get_user("1234567890")
+        redis_client = redis_mocks.RedisUserMock()
+        self.provider = RedisProvider(redis_client)
+        user = self.provider.get_user("1234567890")
         self.assertIsNotNone(user.id)
         self.assertIsNotNone(user.username)
         self.assertIsNotNone(user.email)
         self.assertTrue(user.enabled)
+        self.assertIsNotNone(user.token.id)
 
     def test_user_retrieval_none(self):
         redis_client = redis_mocks.RedisEmptyMock()
@@ -90,13 +97,14 @@ class TestRedis(unittest.TestCase):
     # add user
     def test_user_add_success(self):
         user = entities.User(username='username', email='user@email.com', enabled=True)
-        self.assertTrue(self.provider.add_user(user) > 0)
+        self.assertEqual(self.provider.add_user(user),'OK')
 
     def test_user_add_user_already_exists(self):
         redis_client = redis_mocks.RedisMock(True,False)
         self.provider = RedisProvider(redis_client)
         user = entities.User(username='username', email='user@email.com', enabled=True)
-        self.assertTrue(self.provider.add_user(user) == 0)
+        print self.provider.add_user(user)
+        self.assertEqual(self.provider.add_user(user),'FAIL')
 
     def test_user_add_user_data_invalid(self):
         user = entities.User(email='user@email.com', enabled=True)
