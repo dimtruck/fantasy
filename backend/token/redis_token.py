@@ -1,4 +1,4 @@
-import datetime
+import time
 import redis
 import fantasy_exceptions.fantasy_exceptions as _exception
 import inspect
@@ -50,7 +50,11 @@ class RedisProvider:
             raise _exception.UserNotFound(user_id)
         return user_ref
 
+    '''
+    1. check if user_id is specified
+    2. check if user exists
 
+    '''
     def generate_token(self, user_id, regenerate=True):
         if user_id is None:
             raise _exception.Error("user not found.")
@@ -59,16 +63,16 @@ class RedisProvider:
             raise _exception.Error("user not found.")
         else:
             if regenerate:
-                token = _entities.Token(uuid.uuid1(), datetime.datetime.today() + datetime.timedelta(days=1))
-                self.add_token(user_id, token)
+                token = _entities.Token(uuid.uuid1(), time.localtime(time.time() + 24*3600), user_id)
+                self.add_token(token)
             else:
                 token = user.token
         return token
 
-    def add_token(self, user_id, token):
+    def add_token(self, token=None):
         if token is None or token.expires is None or token.id is None:
             raise _exception.TokenInvalid
-        self.client.mset(token)
+        return self.client.mset(token)
 
     def add_user(self, user):
         if user is None or user.username is None:
@@ -93,7 +97,7 @@ class RedisProvider:
     def client_info(self, value):
         self._client_info = value
 
-    def _get_redis_client(self, client_info):
+    def _get_redis_client(self):
         #memcache_servers = CONF.memcache.servers.split(',')
         self._redis_client = redis.StrictRedis(host=self.client_info['host'], port=self.client_info['port'], db=self.client_info['db'])
         return self._redis_client

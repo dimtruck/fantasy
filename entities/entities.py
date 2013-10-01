@@ -46,7 +46,7 @@ class User:
         self._token = value
 
 class Token:
-    def __init__(self, id=None, expires=None):
+    def __init__(self, id=None, expires=None, userid=None):
         self._id = id
         self._expires = expires
 
@@ -65,5 +65,15 @@ class Token:
     @expires.setter
     def expires(self, value):
         self._expires = value
+
+    @property
+    def userid(self):
+        return self._userid
+
+    @userid.setter
+    def userid(self, value):
+        self._userid = value
+
+
 
 

@@ -26,5 +26,8 @@ class UserNotFound(NotFound):
 class UserInvalid(NotFound):
     message_format = "Specified invalid user."
 
+class TokenInvalid(NotFound):
+    message_format = "Specified invalid token."
+
 class TokenNotFound(NotFound):
     message_format = "Could not find token for user, %(user_id)s."
