@@ -19,11 +19,11 @@ class TestRedis(unittest.TestCase):
 
     # test redis connectivity
     def test_redis_connection_pass(self):
-        self.provider = RedisProvider({'host': '50.56.175.34', 'port': 6379, 'db': 0})
-        print self.provider.client.keys()
+        self.provider = RedisProvider({'host': 'localhost', 'port': 6379, 'db': 0})
+
 
     def test_redis_connection_fail(self):
-        self.provider = RedisProvider({'host': '50.56.175.34', 'port': 6379, 'db': 0})
+        self.provider = RedisProvider({'host': 'localhost', 'port': 6379, 'db': 0})
         print inspect.getmembers(self.provider.client)
 
     # test token generation

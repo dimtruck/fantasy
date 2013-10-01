@@ -3,25 +3,27 @@ import redis
 import fantasy_exceptions.fantasy_exceptions as _exception
 import inspect
 import uuid
+import yaml
+import os
 
-class Token:
-    def __init__(self, id, expires):
-        self._id = id
-        self._expires = expires
 
-    @property
-    def id(self):
-        return self._id
-
-    @property
-    def expires(self):
-        return self._expires
-
-#import redis python hook
+'''
+redis provider will allow user to:
+    get users
+    get tokens from users
+    add users
+    add tokens to users
+    remove users
+    remove tokens from users
+'''
 class RedisProvider:
 
     def __init__(self, client=None, config=None):
         self._redis_client = client
+        if config is None:
+            config = yaml.load(open(os.path.join(os.getcwd(),"config","config.yaml"), 'r'))
+        self.client_info = {'host': config['redis']['host'], 'port': config['redis']['port'], 'db': config['redis']['db']}
+
 
     def get_token(self, user_id):
         if user_id is None:
@@ -68,7 +70,15 @@ class RedisProvider:
     def client(self):
         return self._redis_client or self._get_redis_client()
 
-    def _get_redis_client(self):
+    @property
+    def client_info(self):
+        return self._client_info
+
+    @client_info.setter
+    def client_info(self, value):
+        self._client_info = value
+
+    def _get_redis_client(self, client_info):
         #memcache_servers = CONF.memcache.servers.split(',')
-        self._redis_client = redis.StrictRedis(host=client_info['host'], port=client_info['port'], db=client_info['db'])
+        self._redis_client = redis.StrictRedis(host=self.client_info['host'], port=self.client_info['port'], db=self.client_info['db'])
         return self._redis_client
