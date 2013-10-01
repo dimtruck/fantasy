@@ -20,7 +20,7 @@ class Token:
 #import redis python hook
 class RedisProvider:
 
-    def __init__(self, client=None):
+    def __init__(self, client=None, config=None):
         self._redis_client = client
 
     def get_token(self, user_id):
@@ -65,10 +65,10 @@ class RedisProvider:
         return 'usertokens-%s' % user_id.encode('utf-8')
 
     @property
-    def client(self, client_info=None):
-        return self._redis_client or self._get_redis_client(client_info)
+    def client(self):
+        return self._redis_client or self._get_redis_client()
 
-    def _get_redis_client(self, client_info):
+    def _get_redis_client(self):
         #memcache_servers = CONF.memcache.servers.split(',')
         self._redis_client = redis.StrictRedis(host=client_info['host'], port=client_info['port'], db=client_info['db'])
         return self._redis_client

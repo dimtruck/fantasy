@@ -5,53 +5,13 @@ from backend.token.redis_token import RedisProvider
 import inspect
 import exceptions
 import uuid
+import redis_mocks
+import entities
 
-class TokenMock:
-    @property
-    def id(self):
-        return uuid.uuid1()
-
-    @property
-    def expires(self):
-        return datetime.date.today() + datetime.timedelta(days=1)
-
-class TokenInvalidMock:
-    @property
-    def id(self):
-        return None
-
-    @property
-    def expires(self):
-        return None
-
-class RedisMock:
-    def __init__(self, get_works=True, add_works=True):
-        self._get = get_works
-        self._add = add_works
-
-    def get(self, id):
-        if self._get:
-            return TokenMock()
-        else:
-            return None
-
-    def add(self, data):
-        if self._add:
-            return 1
-        else:
-            return 0
-
-class RedisInvalidMock:
-    def get(self, id):
-        return TokenInvalidMock()
-
-class RedisEmptyMock:
-    def get(self, id):
-        return None
 
 class TestRedis(unittest.TestCase):
     def setUp(self):
-        redis_client = RedisMock()
+        redis_client = redis_mocks.RedisMock()
         self.provider = RedisProvider(redis_client)
 
     def tearDown(self):
@@ -60,7 +20,7 @@ class TestRedis(unittest.TestCase):
     # test redis connectivity
     def test_redis_connection_pass(self):
         self.provider = RedisProvider({'host': '50.56.175.34', 'port': 6379, 'db': 0})
-        print inspect.getmembers(self.provider.client)
+        print self.provider.client.keys()
 
     def test_redis_connection_fail(self):
         self.provider = RedisProvider({'host': '50.56.175.34', 'port': 6379, 'db': 0})
@@ -118,44 +78,46 @@ class TestRedis(unittest.TestCase):
         self.assertTrue(user.enabled)
 
     def test_user_retrieval_none(self):
-        redis_client = RedisEmptyMock()
+        redis_client = redis_mocks.RedisEmptyMock()
         self.provider = RedisProvider(redis_client)
         self.assertRaises(_exceptions.Error, self.provider.get_user, None)
 
     def test_user_retrieval_invalid_user(self):
-        redis_client = RedisEmptyMock()
+        redis_client = redis_mocks.RedisEmptyMock()
         self.provider = RedisProvider(redis_client)
         self.assertRaises(_exceptions.UserNotFound, self.provider.get_user, "111111")
 
     # add user
     def test_user_add_success(self):
-        user = User('username','user@email.com', True)
+        user = entities.User(username='username', email='user@email.com', enabled=True)
         self.assertTrue(self.provider.add_user(user) > 0)
 
     def test_user_add_user_already_exists(self):
-        redis_client = RedisMock(True,False)
+        redis_client = redis_mocks.RedisMock(True,False)
         self.provider = RedisProvider(redis_client)
-        user = User('username','user@email.com', True)
+        user = entities.User(username='username', email='user@email.com', enabled=True)
         self.assertTrue(self.provider.add_user(user) == 0)
 
     def test_user_add_user_data_invalid(self):
-        user = User('','user@email.com', True)
+        user = entities.User(email='user@email.com', enabled=True)
         self.assertRaises(_exceptions.UserInvalid, self.provider.add_user, user)
 
     # add token
     def test_token_add_success(self):
-        token = Token('1234567890')
+        token = entities.Token(id='1234567890', userid='123456')
         self.assertTrue(self.provider.add_token(token) > 0)
 
-    def test_token_add_user_already_exists(self):
-        redis_client = RedisMock(True,False)
+    def test_token_add_token_already_exists(self):
+        redis_client = redis_mocks.RedisMock(True,False)
         self.provider = RedisProvider(redis_client)
-        token = Token('1234567890')
+        token = entities.Token(id='1234567890', userid='123456')
         self.assertTrue(self.provider.add_token(token) == 0)
 
-    def test_token_add_user_data_invalid(self):
-        token = Token(None)
+    def test_token_add_token_data_invalid(self):
+        token = Token(id='1234567')
         self.assertRaises(_exceptions.UserInvalid, self.provider.add_token, token)
+        token = Token(userid='1234567')
+        self.assertRaises(_exceptions.TokenInvalid, self.provider.add_token, token)
 
     # remove user
     def test_remove_user_success(self):
